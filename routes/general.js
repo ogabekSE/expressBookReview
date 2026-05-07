@@ -1,66 +1,88 @@
 const express = require("express");
+const axios = require("axios");
 const books = require("../booksdb.js");
 let users = require("../usersdb.js").users;
 
 const public_users = express.Router();
 
-// Get all books
+const BASE_URL = "http://localhost:5000";
+
+// Get all books (no axios needed here)
 public_users.get("/", async (req, res) => {
-  return res.status(200).json(books);
+  try {
+    return res.status(200).json(books);
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error." });
+  }
 });
 
-// Get book by ISBN
+// Get book by ISBN (using axios)
 public_users.get("/isbn/:isbn", async (req, res) => {
-  const isbn = req.params.isbn;
-  const book = books[isbn];
-  return book
-    ? res.status(200).json(book)
-    : res.status(404).json({ message: "Book not found" });
+  try {
+    const isbn = req.params.isbn;
+    // Here, you might call another service or your own endpoint
+    // For the exercise, simulate by calling '/' and filtering
+    const response = await axios.get(`${BASE_URL}/`);
+    const allBooks = response.data;
+    const book = allBooks[isbn];
+    if (book) {
+      return res.status(200).json(book);
+    } else {
+      return res.status(404).json({ message: "Book not found" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "Error retrieving book by ISBN" });
+  }
 });
 
-// Get books by author
+// Get books by author (using axios)
 public_users.get("/author/:author", async (req, res) => {
-  const author = req.params.author;
-  const results = [];
-  for (let isbn in books) {
-    if (books[isbn].author === author) results.push(books[isbn]);
+  try {
+    const author = req.params.author;
+    const response = await axios.get(`${BASE_URL}/`);
+    const allBooks = response.data;
+    const results = [];
+    for (let isbn in allBooks) {
+      if (allBooks[isbn].author === author) {
+        results.push(allBooks[isbn]);
+      }
+    }
+    if (results.length > 0) {
+      return res.status(200).json(results);
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No books found for this author" });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error retrieving books by author" });
   }
-  return results.length
-    ? res.status(200).json(results)
-    : res.status(404).json({ message: "No books found by this author" });
 });
 
-// Get books by title
+// Get books by title (using axios)
 public_users.get("/title/:title", async (req, res) => {
-  const title = req.params.title;
-  const results = [];
-  for (let isbn in books) {
-    if (books[isbn].title === title) results.push(books[isbn]);
+  try {
+    const title = req.params.title;
+    const response = await axios.get(`${BASE_URL}/`);
+    const allBooks = response.data;
+    const results = [];
+    for (let isbn in allBooks) {
+      if (allBooks[isbn].title === title) {
+        results.push(allBooks[isbn]);
+      }
+    }
+    if (results.length > 0) {
+      return res.status(200).json(results);
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No books found with this title" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "Error retrieving books by title" });
   }
-  return results.length
-    ? res.status(200).json(results)
-    : res.status(404).json({ message: "No books found with this title" });
-});
-
-// Get book reviews
-public_users.get("/review/:isbn", (req, res) => {
-  const isbn = req.params.isbn;
-  const book = books[isbn];
-  return book
-    ? res.status(200).json(book.reviews)
-    : res.status(404).json({ message: "Book not found" });
-});
-
-// Register a new user
-public_users.post("/register", (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ message: "Username and password required" });
-  if (users.find((u) => u.username === username))
-    return res.status(409).json({ message: "User already exists" });
-
-  users.push({ username, password });
-  return res.status(201).json({ message: "User registered successfully" });
 });
 
 module.exports.general = public_users;
